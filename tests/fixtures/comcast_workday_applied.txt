@@ -1,0 +1,22 @@
+Message-Id: m-comcast-1
+Thread-Id: t-comcast-1
+From: Comcast Careers <comcast@myworkday.com>
+Subject: Thank You for Applying to Comcast!
+Date: 2026-06-25T14:03:00+00:00
+
+Dear Chunwei,
+
+Thank you for applying to work with us at Comcast. We have received your application for Engineer 1, Software Dev & Eng and are so happy you've decided to consider Comcast as part of your career journey.
+
+As we review your application, we'd encourage you to:
+
+- Check the status of your application in the Job Applications section of your candidate profile
+https://comcast.wd5.myworkdayjobs.com/Comcast_Careers
+
+Once we have news about your application, we'll be in touch!
+
+Sincerely,
+
+Comcast Talent
+
+Requisition ID: R440149 Engineer 1, Software Dev & Eng (Open)

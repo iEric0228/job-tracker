@@ -1,0 +1,13 @@
+Message-Id: m-globex-1
+Thread-Id: t-globex-1
+From: Globex Recruiting <no-reply@ashbyhq.com>
+Subject: Next step: online assessment for Platform Engineer
+Date: 2026-06-26T08:30:00+00:00
+
+Hi Chunwei,
+
+Thanks for applying to the Platform Engineer role at Globex. The next step is a 90-minute online assessment on HackerRank. Please complete it within 5 days:
+
+https://www.hackerrank.com/test/xyz789
+
+Globex Recruiting

@@ -1,0 +1,18 @@
+Message-Id: m-staples-1
+Thread-Id: t-staples-1
+From: Staples Talent Acquisition <talentacquisition@staples.com>
+Subject: The status of your Staples application
+Date: 2026-06-28T09:15:00+00:00
+
+Dear Chunwei,
+
+Thank you for your interest in career opportunities at Staples. The 70140  DevOps Engineer I position you applied to has been filled.
+
+We welcome you to apply to additional opportunities at Staples by visiting our careers site.
+
+Please note, if you've applied to more than one position at Staples, you'll receive individual consideration and a follow-up for each position.
+
+Once again, we appreciate your interest in Staples and wish you every success in your career journey.
+
+Sincerely,
+Staples Talent Acquisition Team

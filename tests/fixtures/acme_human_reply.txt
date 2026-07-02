@@ -1,0 +1,12 @@
+Message-Id: m-acme-2
+Thread-Id: t-acme-1
+From: Jordan Lee <jordan.lee@acmecloud.com>
+Subject: Re: Your Acme Cloud application
+Date: 2026-06-24T18:22:00+00:00
+
+Hi Chunwei,
+
+Thanks for your patience — we're still reviewing applications for the Cloud Support Engineer role this week and will get back to you by Friday.
+
+Jordan
+Recruiting, Acme Cloud

@@ -1,0 +1,13 @@
+Message-Id: m-northwind-1
+Thread-Id: t-northwind-1
+From: Northwind Recruiting <no-reply@hire.lever.co>
+Subject: Northwind — schedule your recruiter screen
+Date: 2026-06-22T11:05:00+00:00
+
+Hi Chunwei,
+
+We'd love to set up a 30-minute recruiter screen for the DevOps Engineer position at Northwind. Pick a time that works for you:
+
+https://hire.lever.co/interviews/schedule/abc123
+
+Talent Team, Northwind

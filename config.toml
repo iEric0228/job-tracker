@@ -1,0 +1,95 @@
+[sync]
+backfill_days = 180
+overlap_days = 2
+
+[ghosting]
+ghost_days = 21
+
+[review]
+confidence_threshold = 0.6
+
+[ollama]
+host = "http://localhost:11434"
+model = "qwen2.5:7b"
+
+[paths]
+db = "data/tracker.db"
+credentials = "credentials.json"
+token = "token.json"
+
+# The LLM picks one of these based on the role title. Edit freely.
+[categories]
+names = ["Cloud Support", "DevOps/SRE", "Backend", "Platform/Infra", "Data", "Other"]
+
+# Keys and values are compared after normalization (lowercase, suffixes stripped).
+[company_aliases]
+"aws" = "amazon"
+"amazon web services" = "amazon"
+
+[prefilter]
+ats_domains = [
+    "greenhouse.io",
+    "greenhouse-mail.io",
+    "lever.co",
+    "myworkday.com",
+    "myworkdayjobs.com",
+    "myworkdaysite.com",
+    "ashbyhq.com",
+    "icims.com",
+    "smartrecruiters.com",
+    "jobvite.com",
+    "bamboohr.com",
+    "taleo.net",
+    "successfactors.com",
+    "oraclecloud.com",
+    "eightfold.ai",
+    "dayforcehcm.com",
+    "workablemail.com",
+    "hackerrankforwork.com",
+    "codility.com",
+    "codesignal.com",
+]
+subject_keywords = [
+    "application",
+    "applying",
+    "applied",
+    "interview",
+    "assessment",
+    "candidacy",
+    "candidate",
+    "talent acquisition",
+    "recruiter",
+    "recruiting",
+    "hiring",
+    "offer",
+    "next steps",
+    "coding challenge",
+    "take-home",
+    "opportunity",
+]
+body_keywords = [
+    "thank you for applying",
+    "we received your application",
+    "your application",
+    "position you applied",
+    "moving forward with other candidates",
+    "not to move forward",
+    "schedule your interview",
+]
+noise_senders = [
+    "linkedin.com",
+    "indeed.com",
+    "ziprecruiter.com",
+    "glassdoor.com",
+    "jobalerts",
+    "jobs-noreply",
+]
+noise_subject_patterns = [
+    "job alert",
+    "jobs for you",
+    "new jobs",
+    "recommended for you",
+    "daily digest",
+    "weekly digest",
+    "newsletter",
+]
