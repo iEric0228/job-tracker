@@ -22,8 +22,14 @@ to software/cloud engineering jobs. Given one email, return JSON matching the
 provided schema. Field meanings:
 
 relevance:
-- my_application: concerns a job application the user submitted
-- inbound_lead: a recruiter or company reaching out about a job the user did NOT apply to
+- my_application: concerns a job application the user submitted — including
+  received/thank-you-for-applying confirmations, status updates ("update on
+  your application"), and rejections. These stay my_application even when sent
+  by a staffing agency (e.g. TEKsystems, Insight Global) or an ATS on the
+  employer's behalf.
+- inbound_lead: a recruiter or company reaching out about a job the user did
+  NOT apply to. Only use this when the email is unsolicited outreach; anything
+  referencing an application the user made is my_application.
 - not_job_related: everything else (newsletters, alerts, receipts, personal mail)
 
 status_signal — what THIS email indicates for the application:
@@ -35,7 +41,14 @@ status_signal — what THIS email indicates for the application:
 - offer: an offer is extended
 - rejected: explicit rejection ("we will not be moving forward", "position has been filled")
 - withdrawn: the user withdrew their application
-- other: status-neutral (e.g. "we're still reviewing")
+- other: status-neutral (e.g. "we're still reviewing", a request to send more information)
+
+A stage signal (recruiter_screen and beyond) requires that THIS email contains
+a scheduling link, a proposed or confirmed date/time, or a direct request to
+book a specific meeting. Anything conditional or hypothetical — "if your
+skills match…", "if your qualifications match our needs, you may be contacted
+to schedule a screening call" — does NOT advance the stage: use applied (for
+application confirmations) or other.
 
 email_kind:
 - auto_confirmation: automated "application received" template
@@ -45,14 +58,26 @@ email_kind:
 - other: none of the above
 
 company: the employer's name (not the ATS vendor). role_title: the job title as
-written, including any requisition codes. category: pick the closest from
-{categories}. confidence: 0.0-1.0 for this whole extraction. reason: one short
-sentence. Return only JSON.
+written, including any requisition codes; use "" when the email names no job
+title — never invent one and never use a process phrase like "Virtual
+Interview". category: pick the closest from {categories}. confidence: 0.0-1.0
+for this whole extraction. reason: one short sentence. Return only JSON.
 """
 
 
 class Classifier(Protocol):
     def classify(self, email: EmailMessage) -> Extraction: ...
+
+
+def _format_schema() -> dict:
+    """Extraction's schema with every field required. The pydantic defaults
+    make fields optional, and under constrained decoding the model then omits
+    company/role_title entirely — silently backfilled as empty strings."""
+    schema = Extraction.model_json_schema()
+    return {**schema, "required": list(schema["properties"])}
+
+
+FORMAT_SCHEMA = _format_schema()
 
 
 class OllamaClassifier:
@@ -76,7 +101,7 @@ class OllamaClassifier:
             response = self._client.chat(
                 model=self._model,
                 messages=messages,
-                format=Extraction.model_json_schema(),
+                format=FORMAT_SCHEMA,
                 options={"temperature": 0},
             )
             content = response["message"]["content"]

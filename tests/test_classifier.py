@@ -47,6 +47,15 @@ def test_valid_output_parses():
     assert fake.calls[0]["options"] == {"temperature": 0}
 
 
+def test_schema_marks_every_field_required():
+    # Optional fields let the model omit company/role_title entirely, and
+    # pydantic then backfills silent defaults — every field must be required.
+    clf, fake = make_classifier([VALID])
+    clf.classify(load_fixture("greenhouse_applied.txt"))
+    fmt = fake.calls[0]["format"]
+    assert set(fmt.get("required", [])) == set(fmt["properties"])
+
+
 def test_retries_once_on_invalid_json():
     clf, fake = make_classifier(["not json at all", VALID])
     ext = clf.classify(load_fixture("greenhouse_applied.txt"))

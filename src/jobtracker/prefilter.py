@@ -2,6 +2,10 @@
 
 Exclusions win over inclusions: a job-alert digest full of the word
 "application" must still be dropped before it reaches the classifier.
+The one exception is allow_senders — explicit overrides for senders that
+would otherwise be caught by a broader noise rule (e.g. LinkedIn's
+jobs-noreply, which carries application updates while linkedin.com as a
+whole is noise).
 """
 
 from __future__ import annotations
@@ -31,6 +35,8 @@ def check(email: EmailMessage, cfg: Config) -> str:
     subject = email.subject.lower()
     text = f"{email.snippet} {email.body}"[:2000].lower()
 
+    if any(allowed in sender for allowed in cfg.allow_senders):
+        return CANDIDATE
     if any(noise in sender for noise in cfg.noise_senders):
         return "noise_sender"
     if any(pattern in subject for pattern in cfg.noise_subject_patterns):

@@ -2,7 +2,7 @@
 
 Parses your Gmail inbox (read-only), classifies job-related emails with a local LLM, and visualizes your pipeline — no manual data entry. Single-user, local-first, SQLite. Email bodies never leave your machine: classification runs on Ollama.
 
-Pipeline per sync: Gmail date-window fetch → cheap prefilter (ATS sender domains + keywords, job-alert digests excluded) → Ollama structured extraction → grouping into applications (thread continuity + fuzzy company/role matching) → events stored in SQLite → statuses derived, never guessed.
+Pipeline per sync: targeted Gmail search (ATS sender domains + keywords, built from `[prefilter]` config, so only plausible candidates are fetched) → cheap local prefilter (noise exclusion, with a skipped-table audit trail) → Ollama structured extraction → grouping into applications (thread continuity + fuzzy company/role matching) → events stored in SQLite → statuses derived, never guessed. `--full-scan` lists every message in the window instead, to audit what the search terms would miss.
 
 ## Definitions the charts use
 
@@ -41,7 +41,7 @@ The first sync backfills `backfill_days` (default 180). Every candidate email is
 
 ## Configuration (`config.toml`)
 
-`backfill_days` / `overlap_days` — sync window; `ghost_days` — silence threshold; `confidence_threshold` — extractions below it are flagged in the dashboard's "Needs review" table; `[ollama]` — host and model; `[categories]` — job-track buckets offered to the LLM; `[company_aliases]` — e.g. AWS → Amazon; `[prefilter]` — ATS domains, keywords, and noise lists.
+`backfill_days` / `overlap_days` — sync window; `ghost_days` — silence threshold; `confidence_threshold` — extractions below it are flagged in the dashboard's "Needs review" table; `[ollama]` — host and model; `[categories]` — job-track buckets offered to the LLM; `[company_aliases]` — e.g. AWS → Amazon; `[prefilter]` — ATS domains, keywords, noise lists, and `allow_senders` (senders that beat the noise rules, e.g. LinkedIn's `jobs-noreply`, which carries Easy Apply confirmations and rejections while the rest of linkedin.com is noise).
 
 ## Design decisions
 
@@ -54,7 +54,7 @@ The first sync backfills `backfill_days` (default 180). Every candidate email is
 ## Tests
 
 ```bash
-uv run pytest      # 34 tests: prefilter, grouping, state/ghost logic, classifier parsing, sync idempotency
+uv run pytest      # 39 tests: prefilter, grouping, state/ghost logic, classifier parsing, sync idempotency
 uv run ruff check .
 ```
 

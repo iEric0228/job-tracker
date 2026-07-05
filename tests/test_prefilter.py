@@ -70,3 +70,44 @@ def test_digest_subject_is_noise(cfg):
 def test_unrelated_email_no_match(cfg):
     email = make("A Friend <friend@example.com>", "Lunch tomorrow?", "Ramen at noon?")
     assert prefilter.check(email, cfg) == "no_match"
+
+
+def test_allowed_sender_beats_noise_list(cfg):
+    # jobs-noreply@linkedin.com carries Easy Apply confirmations and
+    # rejections; it must get through even though linkedin.com is noise.
+    email = make(
+        "LinkedIn <jobs-noreply@linkedin.com>",
+        "Your application to DevOps Engineer at TCI Technology Consulting Inc",
+    )
+    assert prefilter.check(email, cfg) == "candidate"
+
+
+def test_other_linkedin_mail_is_still_noise(cfg):
+    email = make("LinkedIn <notifications-noreply@linkedin.com>", "You appeared in 8 searches")
+    assert prefilter.check(email, cfg) == "noise_sender"
+
+
+def test_resume_submission_subject_is_candidate(cfg):
+    email = make(
+        '"Reyrey.com" <noreply@reyrey.com>',
+        "Reynolds and Reynolds: Thank You For Your Resume Submission",
+    )
+    assert prefilter.check(email, cfg) == "candidate"
+
+
+def test_greenhouse_promo_is_noise(cfg):
+    # Greenhouse's own marketing comes from an ATS domain and would otherwise
+    # sail through the domain rule straight into the classifier.
+    email = make(
+        "Greenhouse <no-reply@greenhouse.io>",
+        "Show recruiters you're really interested with Dream Job",
+    )
+    assert prefilter.check(email, cfg) == "noise_subject"
+
+
+def test_adp_ats_domain_is_candidate(cfg):
+    email = make(
+        '"World Wide Technology Holding, LLC Career Opportunities" <jobs@adp.com>',
+        "Additional Information Needed - World Wide Technology Holding, LLC",
+    )
+    assert prefilter.check(email, cfg) == "candidate"

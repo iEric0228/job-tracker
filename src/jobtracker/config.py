@@ -28,6 +28,7 @@ class Config:
     ats_domains: tuple[str, ...]
     subject_keywords: tuple[str, ...]
     body_keywords: tuple[str, ...]
+    allow_senders: tuple[str, ...]
     noise_senders: tuple[str, ...]
     noise_subject_patterns: tuple[str, ...]
 
@@ -54,6 +55,7 @@ def load_config(path: str | Path = "config.toml") -> Config:
         ats_domains=tuple(pre["ats_domains"]),
         subject_keywords=tuple(pre["subject_keywords"]),
         body_keywords=tuple(pre["body_keywords"]),
+        allow_senders=tuple(pre.get("allow_senders", [])),
         noise_senders=tuple(pre["noise_senders"]),
         noise_subject_patterns=tuple(pre["noise_subject_patterns"]),
     )

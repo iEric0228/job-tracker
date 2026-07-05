@@ -25,6 +25,8 @@ names = ["Cloud Support", "DevOps/SRE", "Backend", "Platform/Infra", "Data", "Ot
 [company_aliases]
 "aws" = "amazon"
 "amazon web services" = "amazon"
+# OpenEye is an Alarm.com subsidiary; its interview mail comes from the parent.
+"alarm com" = "openeye"
 
 [prefilter]
 ats_domains = [
@@ -48,6 +50,8 @@ ats_domains = [
     "hackerrankforwork.com",
     "codility.com",
     "codesignal.com",
+    "adp.com",
+    "brassring.com",
 ]
 subject_keywords = [
     "application",
@@ -66,6 +70,7 @@ subject_keywords = [
     "coding challenge",
     "take-home",
     "opportunity",
+    "resume",
 ]
 body_keywords = [
     "thank you for applying",
@@ -76,13 +81,18 @@ body_keywords = [
     "not to move forward",
     "schedule your interview",
 ]
+# Checked before noise_senders: senders that a noise rule would otherwise
+# swallow. jobs-noreply@linkedin.com carries Easy Apply confirmations and
+# rejections even though linkedin.com as a whole is noise.
+allow_senders = [
+    "jobs-noreply@linkedin.com",
+]
 noise_senders = [
     "linkedin.com",
     "indeed.com",
     "ziprecruiter.com",
     "glassdoor.com",
     "jobalerts",
-    "jobs-noreply",
 ]
 noise_subject_patterns = [
     "job alert",
@@ -92,4 +102,5 @@ noise_subject_patterns = [
     "daily digest",
     "weekly digest",
     "newsletter",
+    "dream job",
 ]

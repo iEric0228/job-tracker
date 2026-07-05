@@ -34,6 +34,32 @@ _REQ_PREFIX = re.compile(r"^\s*\d{3,}\s*[-–—:.]*\s*")
 _REQ_TOKEN = re.compile(r"\b(?:r|req|jr|job)[-#]?\d{3,}\b", re.IGNORECASE)
 _PAREN_NOTE = re.compile(r"\((?:open|closed|remote|hybrid|on-?site|contract)\)", re.IGNORECASE)
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
+_PLACEHOLDER = re.compile(
+    r"^\s*(?:not specified|not provided|not mentioned|not stated|unknown|unspecified|n/?a|none)\b",
+    re.IGNORECASE,
+)
+
+
+_PROCESS_PHRASE = re.compile(
+    r"^\s*(?:(?:virtual|video|phone|first[- ]?round|final|on-?site|technical|recruiter|hr)\s+)*"
+    r"(?:interview|screen(?:ing)?|assessment|call)(?:\s+call)?\s*$",
+    re.IGNORECASE,
+)
+
+
+def scrub_placeholder(value: str) -> str:
+    """Every schema field is required, so when an email doesn't state a fact
+    the LLM emits prose ('Not specified in the email') instead of an empty
+    string. Treat such values as missing."""
+    return "" if _PLACEHOLDER.match(value) else value
+
+
+def scrub_role(value: str) -> str:
+    """Scheduling emails often name no role, so the LLM lifts the process
+    itself ('Virtual Interview') from the subject. A stage is not a job
+    title; treat it as missing so the event attaches by company."""
+    v = scrub_placeholder(value)
+    return "" if _PROCESS_PHRASE.match(v) else v
 
 
 def normalize_company(name: str, aliases: dict[str, str]) -> str:
@@ -74,15 +100,22 @@ def resolve_application(
         return by_thread, False
 
     first_seen = email.date.isoformat()
-    company_norm = normalize_company(ext.company, cfg.company_aliases)
-    role_norm = normalize_role(ext.role_title)
+    company = scrub_placeholder(ext.company)
+    role_title = scrub_role(ext.role_title)
+    company_norm = normalize_company(company, cfg.company_aliases)
+    role_norm = normalize_role(role_title)
+    role_as_company = normalize_company(role_title, cfg.company_aliases)
+    if role_norm and role_as_company == company_norm:
+        # A role that restates the company (e.g. "OpenEye" under Alarm.com,
+        # its parent) identifies nothing — fall through to attach-by-company.
+        role_title, role_norm = "", ""
 
     if not company_norm:
         app_id = db.create_application(
             conn,
-            company=ext.company or "(unknown)",
+            company=company or "(unknown)",
             company_norm="",
-            role_title=ext.role_title or "(unknown role)",
+            role_title=role_title or "(unknown role)",
             role_norm=role_norm,
             category=ext.category,
             first_seen=first_seen,
@@ -99,9 +132,9 @@ def resolve_application(
                 return row["id"], False
         app_id = db.create_application(
             conn,
-            company=ext.company,
+            company=company,
             company_norm=company_norm,
-            role_title=ext.role_title,
+            role_title=role_title,
             role_norm=role_norm,
             category=ext.category,
             first_seen=first_seen,
@@ -117,7 +150,7 @@ def resolve_application(
         return newest["id"], True
     app_id = db.create_application(
         conn,
-        company=ext.company,
+        company=company,
         company_norm=company_norm,
         role_title="(unknown role)",
         role_norm="",

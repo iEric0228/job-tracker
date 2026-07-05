@@ -19,15 +19,30 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+from jobtracker.config import Config
 from jobtracker.models import EmailMessage
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
+def build_search_terms(cfg: Config) -> str:
+    """One Gmail OR-group ({} = any-of) mirroring the prefilter's inclusion
+    rules, so the server only returns plausible candidates instead of the
+    whole mailbox. Exclusions (noise lists) deliberately stay local: they
+    need the skipped-table audit trail, and Gmail-side negation would hide
+    mail from it. Unlike the local check, Gmail matches body phrases against
+    the full body rather than the snippet."""
+    froms = [f"from:{d}" for d in cfg.ats_domains + cfg.allow_senders]
+    subjects = [f'subject:"{k}"' for k in cfg.subject_keywords]
+    phrases = [f'"{p}"' for p in cfg.body_keywords]
+    return "{" + " ".join(froms + subjects + phrases) + "}"
+
+
 class GmailClient:
-    def __init__(self, credentials_path: Path, token_path: Path):
+    def __init__(self, credentials_path: Path, token_path: Path, search_terms: str = ""):
         self._credentials_path = credentials_path
         self._token_path = token_path
+        self._search_terms = search_terms
         self._service = None
 
     def _service_handle(self):
@@ -49,13 +64,14 @@ class GmailClient:
 
     def list_message_ids(self, after_epoch: int) -> list[str]:
         service = self._service_handle()
+        query = f"after:{after_epoch} {self._search_terms}".strip()
         ids: list[str] = []
         token = None
         while True:
             resp = (
                 service.users()
                 .messages()
-                .list(userId="me", q=f"after:{after_epoch}", maxResults=500, pageToken=token)
+                .list(userId="me", q=query, maxResults=500, pageToken=token)
                 .execute()
             )
             ids.extend(m["id"] for m in resp.get("messages", []))

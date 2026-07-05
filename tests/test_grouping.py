@@ -119,6 +119,111 @@ def test_roleless_rejection_attaches_when_unambiguous(conn, cfg):
     assert review  # attached by company alone — flag it
 
 
+def test_placeholder_role_treated_as_missing(conn, cfg):
+    # Every schema field is required, so when an email names no role the LLM
+    # emits prose like "Not specified in the email" — that must behave like
+    # an empty role (attach by company, flagged), not create a junk-role app.
+    applied = Extraction(
+        relevance="my_application",
+        company="Reynolds and Reynolds",
+        role_title="DevOps Engineer",
+        status_signal="applied",
+        email_kind="auto_confirmation",
+        confidence=0.9,
+    )
+    rejected = Extraction(
+        relevance="my_application",
+        company="Reynolds and Reynolds",
+        role_title="Not specified in the email",
+        status_signal="rejected",
+        email_kind="automated_notice",
+        confidence=0.9,
+    )
+    app_1, _ = _resolve(conn, cfg, applied, make_email("m1", "t1"))
+    app_2, review = _resolve(conn, cfg, rejected, make_email("m2", "t2"))
+    assert app_1 == app_2
+    assert review
+
+
+def test_placeholder_company_treated_as_missing(conn, cfg):
+    ext = Extraction(
+        relevance="my_application",
+        company="Unknown",
+        role_title="N/A",
+        status_signal="rejected",
+        email_kind="automated_notice",
+        confidence=0.8,
+    )
+    app_id, review = _resolve(conn, cfg, ext, make_email("m1", "t1"))
+    row = conn.execute(
+        "SELECT company, role_title FROM applications WHERE id = ?", (app_id,)
+    ).fetchone()
+    assert row["company"] == "(unknown)"
+    assert row["role_title"] == "(unknown role)"
+    assert review
+
+
+def test_scrub_role_drops_process_phrases():
+    # Scheduling emails often name no role, so the LLM lifts phrases like
+    # "Virtual Interview" from the subject — that's a stage, not a job title.
+    assert grouping.scrub_role("Virtual Interview") == ""
+    assert grouping.scrub_role("Recruiter Screening Call") == ""
+    assert grouping.scrub_role("Technical Assessment") == ""
+    assert grouping.scrub_role("Not specified in the email") == ""
+    assert grouping.scrub_role("Interview Coordinator") == "Interview Coordinator"
+    assert grouping.scrub_role("DevOps Engineer") == "DevOps Engineer"
+
+
+def test_process_phrase_role_attaches_by_company(conn, cfg):
+    applied = Extraction(
+        relevance="my_application",
+        company="FDM Group",
+        role_title="IT Operations Practice",
+        status_signal="applied",
+        email_kind="auto_confirmation",
+        confidence=0.9,
+    )
+    invite = Extraction(
+        relevance="my_application",
+        company="FDM Group",
+        role_title="Virtual Interview",
+        status_signal="interview",
+        email_kind="scheduling",
+        confidence=0.9,
+    )
+    app_1, _ = _resolve(conn, cfg, applied, make_email("m1", "t1"))
+    app_2, review = _resolve(conn, cfg, invite, make_email("m2", "t2"))
+    assert app_1 == app_2
+    assert review
+
+
+def test_role_equal_to_company_treated_as_missing(conn, cfg):
+    # OpenEye interview mail comes from parent company Alarm.com; one bare
+    # "OpenEye" subject made the LLM emit the company as the role. With the
+    # alarm.com -> openeye alias both normalize identically, and a role that
+    # just restates the company should not split the application.
+    applied = Extraction(
+        relevance="my_application",
+        company="OpenEye",
+        role_title="Service Reliability Engineer",
+        status_signal="applied",
+        email_kind="auto_confirmation",
+        confidence=0.9,
+    )
+    scheduling = Extraction(
+        relevance="my_application",
+        company="Alarm.com",
+        role_title="OpenEye",
+        status_signal="interview",
+        email_kind="scheduling",
+        confidence=0.8,
+    )
+    app_1, _ = _resolve(conn, cfg, applied, make_email("m1", "t1"))
+    app_2, review = _resolve(conn, cfg, scheduling, make_email("m2", "t2"))
+    assert app_1 == app_2
+    assert review
+
+
 def test_different_roles_stay_separate(conn, cfg):
     a = Extraction(
         relevance="my_application",

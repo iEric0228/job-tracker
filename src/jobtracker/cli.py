@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from jobtracker import db
 from jobtracker.classifier import OllamaClassifier
 from jobtracker.config import load_config
-from jobtracker.gmail_client import GmailClient
+from jobtracker.gmail_client import GmailClient, build_search_terms
 from jobtracker.sync import run_sync
 
 
@@ -20,6 +20,12 @@ def main() -> None:
         metavar="YYYY-MM-DD",
         help="ignore saved sync state and scan from this date instead",
     )
+    parser.add_argument(
+        "--full-scan",
+        action="store_true",
+        help="list every message in the window instead of the targeted Gmail "
+        "search; use to audit what the search terms would miss",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -30,7 +36,8 @@ def main() -> None:
         )
 
     conn = db.connect(cfg.db_path)
-    mail = GmailClient(cfg.credentials_path, cfg.token_path)
+    search_terms = "" if args.full_scan else build_search_terms(cfg)
+    mail = GmailClient(cfg.credentials_path, cfg.token_path, search_terms=search_terms)
     classifier = OllamaClassifier(cfg.ollama_host, cfg.ollama_model, cfg.categories)
     result = run_sync(conn, cfg, mail, classifier, override_start_epoch=override)
     print(result.summary())
