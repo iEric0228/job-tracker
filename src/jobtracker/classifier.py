@@ -7,7 +7,7 @@ cli.py — nothing else changes.
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
 import ollama
 from pydantic import ValidationError
@@ -69,7 +69,7 @@ class Classifier(Protocol):
     def classify(self, email: EmailMessage) -> Extraction: ...
 
 
-def _format_schema() -> dict:
+def _format_schema() -> dict[str, Any]:
     """Extraction's schema with every field required. The pydantic defaults
     make fields optional, and under constrained decoding the model then omits
     company/role_title entirely — silently backfilled as empty strings."""

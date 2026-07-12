@@ -19,7 +19,11 @@ dependencies = [
 jobtracker-sync = "jobtracker.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.4"]
+dev = [
+    "mypy>=2.2.0",
+    "pytest>=8.0",
+    "ruff>=0.4",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -37,6 +41,18 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["jobtracker"]
+
+[tool.mypy]
+files = ["src"]
+strict = true
+# google.oauth2 ships py.typed but leaves from_authorized_user_file untyped.
+untyped_calls_exclude = ["google.oauth2"]
+
+# The Google API client libraries ship no type stubs; this is the honest
+# ceiling of strict checking until upstream publishes them.
+[[tool.mypy.overrides]]
+module = ["googleapiclient.*", "google_auth_oauthlib.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
