@@ -81,9 +81,9 @@ body_keywords = [
     "not to move forward",
     "schedule your interview",
 ]
-# Checked before noise_senders: senders that a noise rule would otherwise
-# swallow. jobs-noreply@linkedin.com carries Easy Apply confirmations and
-# rejections even though linkedin.com as a whole is noise.
+# Overrides noise_senders (not noise_subject_patterns): jobs-noreply@linkedin.com
+# carries Easy Apply confirmations and rejections even though linkedin.com as a
+# whole is noise — but its job-alert blasts are still dropped by subject.
 allow_senders = [
     "jobs-noreply@linkedin.com",
 ]
@@ -93,6 +93,15 @@ noise_senders = [
     "ziprecruiter.com",
     "glassdoor.com",
     "jobalerts",
+    "adzuna.com",
+    "jobright.ai",
+    # applyonline@dice.com carries real application confirmations; only
+    # Dice's alert sender is noise.
+    "connect.dice.com",
+    "haystack.cv",
+    "jobscan.co",
+    # ADP itself is an ATS domain; its job-board offshoot is not.
+    "brightjump.adp.com",
 ]
 noise_subject_patterns = [
     "job alert",
@@ -103,4 +112,7 @@ noise_subject_patterns = [
     "weekly digest",
     "newsletter",
     "dream job",
+    "apply now",
+    "is hiring",
+    "verification code",
 ]

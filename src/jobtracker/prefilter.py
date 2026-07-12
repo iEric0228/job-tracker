@@ -35,12 +35,16 @@ def check(email: EmailMessage, cfg: Config) -> str:
     subject = email.subject.lower()
     text = f"{email.snippet} {email.body}"[:2000].lower()
 
-    if any(allowed in sender for allowed in cfg.allow_senders):
-        return CANDIDATE
-    if any(noise in sender for noise in cfg.noise_senders):
+    # allow_senders overrides only the sender-level noise rule: a sender like
+    # jobs-noreply@linkedin.com carries both application updates and job-alert
+    # blasts, so its subjects still go through the noise_subject_patterns.
+    allowed = any(a in sender for a in cfg.allow_senders)
+    if not allowed and any(noise in sender for noise in cfg.noise_senders):
         return "noise_sender"
     if any(pattern in subject for pattern in cfg.noise_subject_patterns):
         return "noise_subject"
+    if allowed:
+        return CANDIDATE
 
     domain = sender_domain(email.sender)
     if any(domain == d or domain.endswith("." + d) for d in cfg.ats_domains):

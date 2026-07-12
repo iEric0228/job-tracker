@@ -41,7 +41,7 @@ The first sync backfills `backfill_days` (default 180). Every candidate email is
 
 ## Configuration (`config.toml`)
 
-`backfill_days` / `overlap_days` — sync window; `ghost_days` — silence threshold; `confidence_threshold` — extractions below it are flagged in the dashboard's "Needs review" table; `[ollama]` — host and model; `[categories]` — job-track buckets offered to the LLM; `[company_aliases]` — e.g. AWS → Amazon; `[prefilter]` — ATS domains, keywords, noise lists, and `allow_senders` (senders that beat the noise rules, e.g. LinkedIn's `jobs-noreply`, which carries Easy Apply confirmations and rejections while the rest of linkedin.com is noise).
+`backfill_days` / `overlap_days` — sync window; `ghost_days` — silence threshold; `confidence_threshold` — extractions below it are flagged in the dashboard's "Needs review" table; `[ollama]` — host and model; `[categories]` — job-track buckets offered to the LLM; `[company_aliases]` — e.g. AWS → Amazon; `[prefilter]` — ATS domains, keywords, noise lists, and `allow_senders` (senders that beat the sender noise rule — subject noise rules still apply — e.g. LinkedIn's `jobs-noreply`, which carries Easy Apply confirmations and rejections while the rest of linkedin.com is noise).
 
 ## Design decisions
 
