@@ -8,6 +8,7 @@ Incremental via a date window with overlap; safe to re-run at any time.
 from __future__ import annotations
 
 import sqlite3
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Protocol
@@ -36,6 +37,7 @@ class SyncResult:
     events_added: int = 0
     skipped_by_llm: int = 0
     flagged_for_review: int = 0
+    duration_s: float = 0.0
 
     def summary(self) -> str:
         return (
@@ -44,7 +46,8 @@ class SyncResult:
             f"{self.filtered_out} filtered out)\n"
             f"classified {self.classified}: {self.events_added} events added, "
             f"{self.skipped_by_llm} not my applications, "
-            f"{self.flagged_for_review} flagged for review"
+            f"{self.flagged_for_review} flagged for review "
+            f"(took {self.duration_s:.1f}s)"
         )
 
 
@@ -57,6 +60,7 @@ def run_sync(
     now: datetime | None = None,
     override_start_epoch: int | None = None,
 ) -> SyncResult:
+    t0 = time.monotonic()
     now = now or datetime.now(timezone.utc)
     run_started = int(now.timestamp())
     if override_start_epoch is not None:
@@ -105,4 +109,5 @@ def run_sync(
 
     db.set_state(conn, LAST_SYNC_KEY, str(run_started))
     conn.commit()
+    result.duration_s = time.monotonic() - t0
     return result

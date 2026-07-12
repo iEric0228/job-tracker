@@ -127,6 +127,13 @@ def test_thread_grouping_collects_both_acme_emails(conn, cfg):
     assert row["first_seen"].startswith("2026-06-20")
 
 
+def test_summary_reports_duration(conn, cfg):
+    mail, clf = make_world()
+    result = run_sync(conn, cfg, mail, clf, now=NOW)
+    assert result.duration_s >= 0
+    assert "(took " in result.summary()
+
+
 def test_rerun_is_idempotent(conn, cfg):
     mail, clf = make_world()
     first = run_sync(conn, cfg, mail, clf, now=NOW)
