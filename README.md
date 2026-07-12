@@ -1,8 +1,19 @@
 # Job application tracker
 
+[![CI](https://github.com/iEric0228/job-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/iEric0228/job-tracker/actions/workflows/ci.yml)
+
 Parses your Gmail inbox (read-only), classifies job-related emails with a local LLM, and visualizes your pipeline — no manual data entry. Single-user, local-first, SQLite. Email bodies never leave your machine: classification runs on Ollama.
 
 Pipeline per sync: targeted Gmail search (ATS sender domains + keywords, built from `[prefilter]` config, so only plausible candidates are fetched) → cheap local prefilter (noise exclusion, with a skipped-table audit trail) → Ollama structured extraction → grouping into applications (thread continuity + fuzzy company/role matching) → events stored in SQLite → statuses derived, never guessed. `--full-scan` lists every message in the window instead, to audit what the search terms would miss.
+
+```mermaid
+flowchart LR
+    G["Gmail API<br/>(read-only scope)"] -->|targeted search| P["Prefilter<br/>noise rules + audit trail"]
+    P -->|candidates| L["Ollama<br/>structured extraction"]
+    L --> A["Grouping<br/>thread + fuzzy company/role"]
+    A --> D[("SQLite<br/>events + applications")]
+    D --> S["Streamlit dashboard<br/>statuses derived at read time"]
+```
 
 ## Definitions the charts use
 
@@ -54,12 +65,17 @@ The first sync backfills `backfill_days` (default 180). Every candidate email is
 ## Tests
 
 ```bash
-uv run pytest      # 39 tests: prefilter, grouping, state/ghost logic, classifier parsing, sync idempotency
+uv run pytest      # 47 tests: prefilter, grouping, state/ghost logic, classifier parsing, sync idempotency
 uv run ruff check .
+uv run mypy        # strict, over src/
 ```
 
-Fixtures in `tests/fixtures/` include real (redacted) Workday and Staples emails plus synthetic Greenhouse/Lever/Ashby ones and noise cases. The classifier is faked in tests — no Ollama needed to run them.
+Fixtures in `tests/fixtures/` include real (redacted) Workday and Staples emails plus synthetic Greenhouse/Lever/Ashby ones and noise cases. The classifier is faked in tests — no Ollama needed to run them. CI runs the same three checks plus a format check on every push and PR to `main`. `uvx pre-commit install` (optional) runs ruff before each commit.
 
 ## Not in v1 (deliberately)
 
 Follow-up reminders, manual correction UI, needs-action view, filters/search, CSV export, time-in-stage analytics, dedup review UI. The schema supports them; the code doesn't pretend to.
+
+## License
+
+[MIT](LICENSE)

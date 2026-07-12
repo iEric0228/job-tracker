@@ -12,6 +12,7 @@ import base64
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from bs4 import BeautifulSoup
 from google.auth.transport.requests import Request
@@ -45,7 +46,7 @@ class GmailClient:
         self._search_terms = search_terms
         self._service = None
 
-    def _service_handle(self):
+    def _service_handle(self) -> Any:
         if self._service is None:
             creds = None
             if self._token_path.exists():
@@ -105,7 +106,7 @@ class GmailClient:
         return _from_response(resp, body=_extract_body(resp.get("payload", {})))
 
 
-def _from_response(resp: dict, body: str) -> EmailMessage:
+def _from_response(resp: dict[str, Any], body: str) -> EmailMessage:
     headers = {h["name"].lower(): h["value"] for h in resp.get("payload", {}).get("headers", [])}
     date = datetime.fromtimestamp(int(resp["internalDate"]) / 1000, tz=timezone.utc)
     return EmailMessage(
@@ -123,13 +124,13 @@ def _decode(data: str) -> str:
     return base64.urlsafe_b64decode(data.encode()).decode("utf-8", errors="replace")
 
 
-def _walk_parts(payload: dict) -> Iterator[dict]:
+def _walk_parts(payload: dict[str, Any]) -> Iterator[dict[str, Any]]:
     yield payload
     for part in payload.get("parts", []) or []:
         yield from _walk_parts(part)
 
 
-def _extract_body(payload: dict) -> str:
+def _extract_body(payload: dict[str, Any]) -> str:
     plain: list[str] = []
     html: list[str] = []
     for part in _walk_parts(payload):
