@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import datetime, timezone
+
+from google.auth.exceptions import RefreshError
 
 from jobtracker import db
 from jobtracker.classifier import OllamaClassifier
@@ -39,7 +42,15 @@ def main() -> None:
     search_terms = "" if args.full_scan else build_search_terms(cfg)
     mail = GmailClient(cfg.credentials_path, cfg.token_path, search_terms=search_terms)
     classifier = OllamaClassifier(cfg.ollama_host, cfg.ollama_model, cfg.categories)
-    result = run_sync(conn, cfg, mail, classifier, override_start_epoch=override)
+    try:
+        result = run_sync(conn, cfg, mail, classifier, override_start_epoch=override)
+    except RefreshError:
+        sys.exit(
+            "Gmail authorization expired or was revoked (Testing-mode tokens last ~7 days).\n"
+            f"Delete {cfg.token_path} and re-run to authorize again in the browser."
+        )
+    except ConnectionError:
+        sys.exit(f"Could not reach Ollama at {cfg.ollama_host} — is it running? (ollama serve)")
     print(result.summary())
 
 
