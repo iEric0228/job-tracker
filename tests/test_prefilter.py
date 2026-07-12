@@ -111,3 +111,38 @@ def test_adp_ats_domain_is_candidate(cfg):
         "Additional Information Needed - World Wide Technology Holding, LLC",
     )
     assert prefilter.check(email, cfg) == "candidate"
+
+
+def test_noise_subject_beats_allowed_sender(cfg):
+    # jobs-noreply@linkedin.com also blasts job alerts; the allow override
+    # rescues the sender from the noise_senders list, not from subject rules.
+    email = make(
+        "LinkedIn <jobs-noreply@linkedin.com>",
+        "New jobs similar to DevOps Engineer at Axway",
+    )
+    assert prefilter.check(email, cfg) == "noise_subject"
+
+
+def test_apply_now_blast_from_allowed_sender_is_noise(cfg):
+    email = make(
+        "LinkedIn <jobs-noreply@linkedin.com>",
+        "Eric, apply now to 'Platform Engineer Intern at Veryable'",
+    )
+    assert prefilter.check(email, cfg) == "noise_subject"
+
+
+def test_job_board_alert_sender_is_noise(cfg):
+    email = make(
+        "Jobright Job Alert <noreply@jobright.ai>",
+        "Yahoo is hiring for a role like you — 87% match",
+    )
+    assert prefilter.check(email, cfg) == "noise_sender"
+
+
+def test_verification_code_from_ats_domain_is_noise(cfg):
+    # ADP is a real ATS domain, but its security mail must not reach the LLM.
+    email = make(
+        "<SecurityServices_NoReply@adp.com>",
+        "Here's your verification code from ADP",
+    )
+    assert prefilter.check(email, cfg) == "noise_subject"
