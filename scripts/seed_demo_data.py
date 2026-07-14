@@ -6,6 +6,7 @@ the shipped product — safe to delete.
 from __future__ import annotations
 
 import random
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -16,6 +17,9 @@ random.seed(7)
 DB_PATH = Path("data/tracker.db")
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 if DB_PATH.exists():
+    # The real synced database lives here too; never destroy it silently.
+    if "--overwrite" not in sys.argv:
+        sys.exit(f"{DB_PATH} already exists (possibly real sync data). Re-run with --overwrite.")
     DB_PATH.unlink()
 
 COMPANIES = [
@@ -152,6 +156,7 @@ def make_app(i: int, company: str, category: str) -> None:
             ),
         )
     dbmod.refresh_application(conn, app_id)
+
 
 for i, (company, category) in enumerate(COMPANIES):
     make_app(i, company, category)
