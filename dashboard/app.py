@@ -6,7 +6,6 @@ that finally replies flips back to active on the next sync + reload.
 
 from __future__ import annotations
 
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -15,6 +14,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from jobtracker import db as dbmod
 from jobtracker import states
 from jobtracker.config import load_config
 from jobtracker.models import STAGE_RANK, STAGES
@@ -44,7 +44,8 @@ if not cfg.db_path.exists():
     st.info("No database yet — run `uv run jobtracker-sync` first.")
     st.stop()
 
-conn = sqlite3.connect(cfg.db_path)
+# db.connect (not raw sqlite3) so schema migrations run on older databases.
+conn = dbmod.connect(cfg.db_path)
 apps = pd.read_sql_query("SELECT * FROM applications", conn)
 events = pd.read_sql_query("SELECT * FROM events ORDER BY event_date", conn)
 skipped = pd.read_sql_query("SELECT * FROM skipped", conn)
@@ -459,12 +460,11 @@ with applications_tab:
     )
     changed_ids = edited_notes.index[edited_notes["notes"] != notes_df["notes"]]
     if len(changed_ids) > 0:
-        notes_conn = sqlite3.connect(cfg.db_path)
+        notes_conn = dbmod.connect(cfg.db_path)
         for app_id in changed_ids:
-            notes_conn.execute(
-                "UPDATE applications SET notes = ? WHERE id = ?",
-                (edited_notes.loc[app_id, "notes"], int(app_id)),
-            )
+            value = edited_notes.loc[app_id, "notes"]
+            # A cleared cell comes back as NaN; the column is NOT NULL.
+            dbmod.update_notes(notes_conn, int(app_id), "" if pd.isna(value) else str(value))
         notes_conn.commit()
         notes_conn.close()
         st.rerun()
