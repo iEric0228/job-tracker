@@ -95,8 +95,16 @@ def resolve_application(
     Returns (application_id, needs_review). needs_review is set when the
     attachment was a guess (e.g. a rejection that names no role).
     """
+    job_details = {
+        "location": scrub_placeholder(ext.location),
+        "remote_type": ext.remote_type,
+        "salary_range": scrub_placeholder(ext.salary_range),
+        "recruiter_name": scrub_placeholder(ext.recruiter_name),
+    }
+
     by_thread = db.app_id_for_thread(conn, email.thread_id)
     if by_thread is not None:
+        db.backfill_job_details(conn, by_thread, **job_details)
         return by_thread, False
 
     first_seen = email.date.isoformat()
@@ -119,6 +127,7 @@ def resolve_application(
             role_norm=role_norm,
             category=ext.category,
             first_seen=first_seen,
+            **job_details,
         )
         return app_id, True
 
@@ -129,6 +138,7 @@ def resolve_application(
             if roles_match(role_norm, row["role_norm"]):
                 if row["category"] == "Other" and ext.category != "Other":
                     db.update_category(conn, row["id"], ext.category)
+                db.backfill_job_details(conn, row["id"], **job_details)
                 return row["id"], False
         app_id = db.create_application(
             conn,
@@ -138,15 +148,18 @@ def resolve_application(
             role_norm=role_norm,
             category=ext.category,
             first_seen=first_seen,
+            **job_details,
         )
         return app_id, False
 
     # No role extracted — common for terse rejections. Attach if unambiguous,
     # otherwise guess the most recently active application and flag it.
     if len(candidates) == 1:
+        db.backfill_job_details(conn, candidates[0]["id"], **job_details)
         return candidates[0]["id"], True
     if candidates:
         newest = max(candidates, key=lambda r: r["last_activity"])
+        db.backfill_job_details(conn, newest["id"], **job_details)
         return newest["id"], True
     app_id = db.create_application(
         conn,
@@ -156,5 +169,6 @@ def resolve_application(
         role_norm="",
         category=ext.category,
         first_seen=first_seen,
+        **job_details,
     )
     return app_id, True

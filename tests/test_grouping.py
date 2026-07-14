@@ -224,6 +224,76 @@ def test_role_equal_to_company_treated_as_missing(conn, cfg):
     assert review
 
 
+def test_job_details_backfill_across_thread(conn, cfg):
+    # The first email is often the terse auto-confirmation with none of the
+    # job-detail fields; a later human reply on the same thread is where
+    # location/salary/recruiter usually surface. Confirm they get merged in.
+    applied = Extraction(
+        relevance="my_application",
+        company="Initech",
+        role_title="Backend Engineer",
+        status_signal="applied",
+        email_kind="auto_confirmation",
+        confidence=0.9,
+    )
+    reply = Extraction(
+        relevance="my_application",
+        company="Initech",
+        role_title="Backend Engineer",
+        status_signal="other",
+        email_kind="human_reply",
+        confidence=0.9,
+        location="Austin, TX",
+        remote_type="hybrid",
+        salary_range="$130k - $150k",
+        recruiter_name="Jamie Lee",
+    )
+    app_1, _ = _resolve(conn, cfg, applied, make_email("m1", "t1"))
+    app_2, _ = _resolve(conn, cfg, reply, make_email("m2", "t1"))
+    assert app_1 == app_2
+    row = conn.execute(
+        "SELECT location, remote_type, salary_range, recruiter_name FROM applications WHERE id = ?",
+        (app_1,),
+    ).fetchone()
+    assert row["location"] == "Austin, TX"
+    assert row["remote_type"] == "hybrid"
+    assert row["salary_range"] == "$130k - $150k"
+    assert row["recruiter_name"] == "Jamie Lee"
+
+
+def test_job_details_backfill_does_not_overwrite(conn, cfg):
+    # A later email with vaguer info (or a placeholder the LLM invented)
+    # should never clobber a value an earlier email already established.
+    first = Extraction(
+        relevance="my_application",
+        company="Umbrella Corp",
+        role_title="SRE",
+        status_signal="applied",
+        email_kind="auto_confirmation",
+        confidence=0.9,
+        location="Remote (US)",
+        recruiter_name="Priya Nair",
+    )
+    second = Extraction(
+        relevance="my_application",
+        company="Umbrella Corp",
+        role_title="SRE",
+        status_signal="other",
+        email_kind="human_reply",
+        confidence=0.9,
+        location="Not specified in the email",
+        recruiter_name="Someone Else",
+    )
+    app_1, _ = _resolve(conn, cfg, first, make_email("m1", "t1"))
+    app_2, _ = _resolve(conn, cfg, second, make_email("m2", "t1"))
+    assert app_1 == app_2
+    row = conn.execute(
+        "SELECT location, recruiter_name FROM applications WHERE id = ?", (app_1,)
+    ).fetchone()
+    assert row["location"] == "Remote (US)"
+    assert row["recruiter_name"] == "Priya Nair"
+
+
 def test_different_roles_stay_separate(conn, cfg):
     a = Extraction(
         relevance="my_application",

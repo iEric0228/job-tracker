@@ -22,7 +22,11 @@ CREATE TABLE IF NOT EXISTS applications (
     furthest_stage TEXT NOT NULL DEFAULT 'applied',
     first_seen TEXT NOT NULL,
     last_activity TEXT NOT NULL,
-    notes TEXT NOT NULL DEFAULT ''
+    notes TEXT NOT NULL DEFAULT '',
+    location TEXT NOT NULL DEFAULT '',
+    remote_type TEXT NOT NULL DEFAULT 'unknown',
+    salary_range TEXT NOT NULL DEFAULT '',
+    recruiter_name TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY,
@@ -60,6 +64,25 @@ def _iso(email: EmailMessage) -> str:
     return email.date.astimezone(timezone.utc).isoformat()
 
 
+_NEW_APPLICATION_COLUMNS = {
+    "location": "TEXT NOT NULL DEFAULT ''",
+    "remote_type": "TEXT NOT NULL DEFAULT 'unknown'",
+    "salary_range": "TEXT NOT NULL DEFAULT ''",
+    "recruiter_name": "TEXT NOT NULL DEFAULT ''",
+}
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add columns introduced after a database's original creation. SQLite's
+    CREATE TABLE IF NOT EXISTS doesn't retrofit new columns onto an existing
+    table, so older databases need an explicit ALTER TABLE per column."""
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(applications)")}
+    for column, ddl in _NEW_APPLICATION_COLUMNS.items():
+        if column not in existing:
+            conn.execute(f"ALTER TABLE applications ADD COLUMN {column} {ddl}")
+    conn.commit()
+
+
 def connect(path: str | Path) -> sqlite3.Connection:
     p = Path(path)
     if p.name != ":memory:":
@@ -68,6 +91,7 @@ def connect(path: str | Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     conn.commit()
+    _migrate(conn)
     return conn
 
 
@@ -112,18 +136,80 @@ def create_application(
     role_norm: str,
     category: str,
     first_seen: str,
+    location: str = "",
+    remote_type: str = "unknown",
+    salary_range: str = "",
+    recruiter_name: str = "",
 ) -> int:
     cur = conn.execute(
         "INSERT INTO applications "
-        "(company, company_norm, role_title, role_norm, category, first_seen, last_activity) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (company, company_norm, role_title, role_norm, category, first_seen, first_seen),
+        "(company, company_norm, role_title, role_norm, category, first_seen, last_activity, "
+        "location, remote_type, salary_range, recruiter_name) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            company,
+            company_norm,
+            role_title,
+            role_norm,
+            category,
+            first_seen,
+            first_seen,
+            location,
+            remote_type,
+            salary_range,
+            recruiter_name,
+        ),
     )
     return int(cur.lastrowid or 0)
 
 
 def update_category(conn: sqlite3.Connection, app_id: int, category: str) -> None:
     conn.execute("UPDATE applications SET category = ? WHERE id = ?", (category, app_id))
+
+
+def update_notes(conn: sqlite3.Connection, app_id: int, notes: str) -> None:
+    """Personal, free-text annotation the user types in the dashboard —
+    unlike every other application field, this one is never set by the
+    classifier and is the one deliberate manual-entry point in the app."""
+    conn.execute("UPDATE applications SET notes = ? WHERE id = ?", (notes, app_id))
+
+
+def backfill_job_details(
+    conn: sqlite3.Connection,
+    app_id: int,
+    *,
+    location: str = "",
+    remote_type: str = "unknown",
+    salary_range: str = "",
+    recruiter_name: str = "",
+) -> None:
+    """Fill in job-detail columns from a later email, without overwriting a
+    value an earlier email already established. Applications are created
+    from the first email seen, which is often the terse auto-confirmation —
+    a later human reply or scheduling email is where these usually surface.
+    """
+    row = conn.execute(
+        "SELECT location, remote_type, salary_range, recruiter_name FROM applications WHERE id = ?",
+        (app_id,),
+    ).fetchone()
+    if row is None:
+        return
+    updates = {}
+    if location and not row["location"]:
+        updates["location"] = location
+    if remote_type != "unknown" and row["remote_type"] == "unknown":
+        updates["remote_type"] = remote_type
+    if salary_range and not row["salary_range"]:
+        updates["salary_range"] = salary_range
+    if recruiter_name and not row["recruiter_name"]:
+        updates["recruiter_name"] = recruiter_name
+    if not updates:
+        return
+    set_clause = ", ".join(f"{col} = ?" for col in updates)
+    conn.execute(
+        f"UPDATE applications SET {set_clause} WHERE id = ?",
+        (*updates.values(), app_id),
+    )
 
 
 def insert_event(
