@@ -13,6 +13,7 @@ STAGE_RANK = {name: rank for rank, name in enumerate(STAGES, start=1)}
 TERMINAL_SIGNALS = {"rejected", "offer", "withdrawn"}
 
 Relevance = Literal["my_application", "inbound_lead", "not_job_related", "unknown"]
+RemoteType = Literal["remote", "hybrid", "onsite", "unknown"]
 StatusSignal = Literal[
     "applied",
     "recruiter_screen",
@@ -56,3 +57,7 @@ class Extraction(BaseModel):
     email_kind: EmailKind = "other"
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     reason: str = ""
+    location: str = ""
+    remote_type: RemoteType = "unknown"
+    salary_range: str = ""
+    recruiter_name: str = ""

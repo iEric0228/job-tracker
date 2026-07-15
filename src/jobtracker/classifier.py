@@ -61,7 +61,23 @@ company: the employer's name (not the ATS vendor). role_title: the job title as
 written, including any requisition codes; use "" when the email names no job
 title — never invent one and never use a process phrase like "Virtual
 Interview". category: pick the closest from {categories}. confidence: 0.0-1.0
-for this whole extraction. reason: one short sentence. Return only JSON.
+for this whole extraction. reason: one short sentence.
+
+location: the city/region/country this role is based in, exactly as stated in
+THIS email — use "" when not mentioned. Never infer from the company's
+headquarters.
+
+remote_type: remote, hybrid, or onsite — only when THIS email states it
+explicitly; use "unknown" otherwise. Never guess from job title alone.
+
+salary_range: the compensation figure as stated in THIS email (e.g. "$120k -
+$150k", "$65/hr"), verbatim or lightly normalized — use "" when not mentioned.
+
+recruiter_name: the personal name of a human recruiter/contact THIS email is
+from or names (e.g. a signature, "your recruiter is Jane Doe") — use "" for
+automated/no-reply senders or when no person is named.
+
+Return only JSON.
 """
 
 
